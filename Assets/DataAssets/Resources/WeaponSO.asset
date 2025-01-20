@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 27ddd37c98f1d3c43b3aeb35f11bf9c7, type: 3}
   m_Name: WeaponSO
   m_EditorClassIdentifier: 
-  Damage: 50
-  AttackDelay: 1
+  Damage: 100
+  AttackDelay: 0.01
   AttackRange: 5
