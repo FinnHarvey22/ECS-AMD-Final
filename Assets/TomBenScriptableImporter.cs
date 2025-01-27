@@ -1,8 +1,6 @@
 using UnityEngine;
 using UnityEditor.AssetImporters;
 using System.IO;
-using UnityEngine.Rendering.HighDefinition;
-using System.Text.RegularExpressions;
 using System.Collections.Generic;
 
 
@@ -15,7 +13,9 @@ public class TomBenScriptableImporter : ScriptedImporter
     string ContentToParse;
     private ParserState state;
 
-    private List<string> Types;
+    private List<ParsedBlock> Types;
+    private List<ParsedBlock> Waves;
+    private List<ParsedBlock> Clusters;
 
     private AssetImportContext context;
 
@@ -44,6 +44,9 @@ public class TomBenScriptableImporter : ScriptedImporter
     }
     public void ParseText(string fileContent)
     {
+        Holder ScriptableHolder = ScriptableObject.CreateInstance<Holder>();
+        context.AddObjectToAsset("Holder",ScriptableHolder);
+        context.SetMainObject(ScriptableHolder);
 
         Debug.Log("ParseStarted!");
         ContentToParse = fileContent;
@@ -66,16 +69,17 @@ public class TomBenScriptableImporter : ScriptedImporter
                                 if (block.Contains("type"))
                                 {
                                     string[] chunks2 = block.Split("-");
-                                    ParsedBlock ParsedType = new ParsedBlock();
+                                    ParsedBlock parsedType = new ParsedBlock();
                                     //Debug.Log("Contains type");
-                                    ParsedType.Type = chunks2[0];
+                                    parsedType.Type = chunks2[0];
                                     chunks2 = chunks2[1].Split("(");
-                                    ParsedType.ID = int.Parse(chunks2[0]);
+                                    parsedType.ID = int.Parse(chunks2[0]);
                                     chunks2 = chunks2[1].Split(")");
-                                    ParsedType.Name = chunks2[0];
-                                    ParsedType.content = chunks2[1];
+                                    parsedType.Name = chunks2[0];
+                                    parsedType.content = chunks2[1];
 
-                                    type(ParsedType.ID,ParsedType.Name,ParsedType.content);
+                                    type(parsedType.ID,parsedType.Name,parsedType.content);
+                                    //Types.Add(parsedType);
                                     
                                 }
                                 else if (block.Contains("cluster"))
@@ -90,6 +94,7 @@ public class TomBenScriptableImporter : ScriptedImporter
                                     ParsedCluster.content = chunks2[1];
 
                                     cluster(ParsedCluster.ID, ParsedCluster.Name, ParsedCluster.content);
+                                    //Clusters.Add(ParsedCluster);
                                 }
                                 else if (block.Contains("wave"))
                                 {
@@ -103,6 +108,7 @@ public class TomBenScriptableImporter : ScriptedImporter
                                     ParsedWave.content = chunks2[1];
 
                                     wave(ParsedWave.ID, ParsedWave.Name, ParsedWave.content); 
+                                    //Waves.Add(ParsedWave);
                                 }
                                 else
                                 {
@@ -136,16 +142,51 @@ public class TomBenScriptableImporter : ScriptedImporter
     
     private void type(int ID, string Name, string Content)
     {
-        Debug.Log(ToString());
+        Enemy enemyType = ScriptableObject.CreateInstance <Enemy>();
+        enemyType.ID = ID;
+        enemyType.enemyName = Name;
+        string[] ContentBlocks = Content.Split("!?");
+        foreach (string block in ContentBlocks)
+        {
+            ContentBlocks = block.Split("=>");
+            if (ContentBlocks[0].Contains("health"))
+            {
+                enemyType.health = float.Parse(ContentBlocks[1]);
+            }
+            else if (ContentBlocks[0].Contains("speed"))
+            {
+                enemyType.speed = float.Parse(ContentBlocks[1]);
+            }
+            else if (ContentBlocks[0].Contains("damage"))
+            {
+                enemyType.damage = float.Parse(ContentBlocks[1]);
+            }
+        }
+        context.AddObjectToAsset("enemyObject", enemyType);
+
+
     }
     private void wave(int ID, string Name, string Content)
     {
-        Debug.Log(ID + Name + Content);
+        
     }
+    
     
     private void cluster(int ID, string Name, string Content)
     {
-        Debug.Log(ID + Name + Content);
+        Cluster ClusterType = ScriptableObject.CreateInstance<Cluster>();
+        ClusterType.ID = ID;
+        ClusterType.clusterName = Name;
+
+
+        string[] ClusterBlocks = Content.Split(("_Tom"));
+        ClusterBlocks = ClusterBlocks[1].Split("!?");
+        ClusterBlocks = ClusterBlocks[0].Split(":");
+        ClusterType.Type = int.Parse(ClusterBlocks[0]);
+        ClusterType.AmountToSpawn = int.Parse(ClusterBlocks[1]);
+        
+        context.AddObjectToAsset("clusterObject", ClusterType);
+        
     }
 
     private void ClearBuffer() => charBuffer = "";
