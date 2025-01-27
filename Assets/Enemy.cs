@@ -4,6 +4,9 @@ using UnityEngine;
 public class Enemy : ScriptableObject
 {
 	public string name;
-	public float attack;
+	public int ID;
+	public float health;
 	public float speed;
+	public float damage;
+
 }
