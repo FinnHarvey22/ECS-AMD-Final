@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEditor.AssetImporters;
 using System.IO;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 
 [ScriptedImporter(1, "TomBen")]
@@ -168,7 +169,35 @@ public class TomBenScriptableImporter : ScriptedImporter
     }
     private void wave(int ID, string Name, string Content)
     {
+
+        string[] WaveBlocks = Content.Split("!?");
         
+        Regex Pattern = new Regex("([CT])(\\d)(\\<\\d\\>)?(\\[\\d\\])?");
+
+
+        for (int a = 0; a < WaveBlocks.Length; a++)
+        {
+            Wave WaveType = ScriptableObject.CreateInstance<Wave>();
+
+            WaveType.ID = ID;
+            WaveType.name = Name;
+            Match waveGroups = Pattern.Match(WaveBlocks[a]);
+
+            if (waveGroups.Success)
+            {
+                Wave.waveData ParsedWave = new Wave.waveData();
+                if (waveGroups.Groups[1].Value == "C")
+                {
+                    ParsedWave.isCluster = true;
+                }
+
+                    ParsedWave.ID = int.Parse(waveGroups.Groups[2].Value);
+                //ParsedWave.SpawnTime = int.Parse(waveGroups.Groups[3].Value);
+                //ParsedWave.PopulationDensity = int.Parse(waveGroups.Groups[4].Value);
+            }
+            
+            context.AddObjectToAsset("waveObject", WaveType);
+        }
     }
     
     
