@@ -13,10 +13,9 @@ public class TomBenScriptableImporter : ScriptedImporter
     private int charIndex;
     string ContentToParse;
     private ParserState state;
+    private BlockState statesForBlocks;
 
     private List<ParsedBlock> Types;
-    private List<ParsedBlock> Waves;
-    private List<ParsedBlock> Clusters;
 
     private AssetImportContext context;
 
@@ -35,112 +34,128 @@ public class TomBenScriptableImporter : ScriptedImporter
         ParsingHeader,
         ParsingBlockBody,
     };
+
+    enum BlockState
+    {
+        type,
+        cluster,
+        wave,
+    }
 	public override void OnImportAsset(AssetImportContext ctx)
 	{
         context = ctx;
 		string filetext = File.ReadAllText(context.assetPath);
         ChangeState(ParserState.Outside);
 		Debug.Log(filetext);
+        Types = new List<ParsedBlock>();
+        Holder ScriptableHolder = ScriptableObject.CreateInstance<Holder>();
+        context.AddObjectToAsset("Holder", ScriptableHolder);
+        context.SetMainObject(ScriptableHolder);
 		ParseText(filetext);
     }
+
     public void ParseText(string fileContent)
     {
-        Holder ScriptableHolder = ScriptableObject.CreateInstance<Holder>();
-        context.AddObjectToAsset("Holder",ScriptableHolder);
-        context.SetMainObject(ScriptableHolder);
 
-        Debug.Log("ParseStarted!");
         ContentToParse = fileContent;
 
         while (!ReachedEnd())
         {
-            NextChar();
             switch (state)
             {
                 case ParserState.ParsingHeader:
+                {
+                    Debug.Log("HeaderParseStarted!");
+                    while (!BufferHas("_Tom"))
                     {
-                        //Debug.Log("parsing Header");
-                        if (ReachedEnd()) 
-                        { 
-                            string[] chunks = charBuffer.Split("_Ben");
-
-                            foreach (string block in chunks)
-                            {
-                                Debug.Log($"{block}");
-                                if (block.Contains("type"))
-                                {
-                                    string[] chunks2 = block.Split("-");
-                                    ParsedBlock parsedType = new ParsedBlock();
-                                    //Debug.Log("Contains type");
-                                    parsedType.Type = chunks2[0];
-                                    chunks2 = chunks2[1].Split("(");
-                                    parsedType.ID = int.Parse(chunks2[0]);
-                                    chunks2 = chunks2[1].Split(")");
-                                    parsedType.Name = chunks2[0];
-                                    parsedType.content = chunks2[1];
-
-                                    type(parsedType.ID,parsedType.Name,parsedType.content);
-                                    //Types.Add(parsedType);
-                                    
-                                }
-                                else if (block.Contains("cluster"))
-                                {
-                                    string[] chunks2 = block.Split("-");
-                                    ParsedBlock ParsedCluster = new ParsedBlock();
-                                    ParsedCluster.Type = chunks2[0];
-                                    chunks2 = chunks2[1].Split("(");
-                                    ParsedCluster.ID = int.Parse(chunks2[0]);
-                                    chunks2 = chunks2[1].Split(")");
-                                    ParsedCluster.Name = chunks2[0];
-                                    ParsedCluster.content = chunks2[1];
-
-                                    cluster(ParsedCluster.ID, ParsedCluster.Name, ParsedCluster.content);
-                                    //Clusters.Add(ParsedCluster);
-                                }
-                                else if (block.Contains("wave"))
-                                {
-                                    string[] chunks2 = block.Split("-");
-                                    ParsedBlock ParsedWave = new ParsedBlock();
-                                    ParsedWave.Type = chunks2[0];
-                                    chunks2 = chunks2[1].Split("(");
-                                    ParsedWave.ID = int.Parse(chunks2[0]);
-                                    chunks2 = chunks2[1].Split(")");
-                                    ParsedWave.Name = chunks2[0];
-                                    ParsedWave.content = chunks2[1];
-
-                                    wave(ParsedWave.ID, ParsedWave.Name, ParsedWave.content); 
-                                    //Waves.Add(ParsedWave);
-                                }
-                                else
-                                {
-                                    Debug.Assert(false, "Invalid Type");
-                                }
-                            }
-                            charIndex = 0;
-                            ChangeState(ParserState.ParsingBlockBody);
-                            
-                        }
-                        break;
+                        NextChar();
                     }
-                case ParserState.ParsingBlockBody:
-                    {
 
-                        break;
-                    }
-                case ParserState.Outside:
+                    charBuffer = charBuffer[0..^4];
+                    Debug.Log(charBuffer);
+
+                    Regex HeaderPattern = new Regex("(type|wave|cluster)\\s*-\\s*(\\d+)\\s*\\(([\\w\\s]+)\\)\\s*");
+                    Match HeaderBlocks = HeaderPattern.Match(charBuffer);
+
+                    if (HeaderBlocks.Success)
                     {
-                        if (BufferHasAny("type", "cluster", "wave"))
+                        ClearBuffer();
+                        while (!BufferHas("_Ben"))
                         {
-                            charIndex = 0;
-                            ChangeState(ParserState.ParsingHeader);
+                            NextChar();
                         }
 
-                        break;
+                        charBuffer = charBuffer[0..^4];
+
+                        ParsedBlock parsedHeaders = new ParsedBlock()
+                        {
+                            Type = HeaderBlocks.Groups[1].Value,
+                            Name = HeaderBlocks.Groups[3].Value,
+                            ID = int.Parse(HeaderBlocks.Groups[2].Value),
+                            content = charBuffer,
+
+                        };
+                        Types.Add(parsedHeaders);
+                        Debug.Log(Types.Count);
+
                     }
+                    //Debug.Log("parsing Header");
+
+                    break;
+                }
+                case ParserState.ParsingBlockBody:
+                {
+                    switch (statesForBlocks)
+                    {
+                        case BlockState.type:
+                        {
+                            break;
+                        }
+                        case BlockState.wave:
+                        {
+                            break;
+                        }
+                        case BlockState.cluster:
+                        {
+                            break;
+                        }
+                        
+                    }
+
+                    break;
+                }
+                case ParserState.Outside:
+                {
+                    Debug.Log("ParseStarted!");
+                    while (!BufferHas("_Tom"))
+                    {
+                        NextChar();
+                    }
+
+                    charIndex = 0;
+                    ChangeState(ParserState.ParsingHeader);
+
+                    break;
+                }
             }
+
+        }
+        ParseBody();
+        
+    }
+
+    private void ParseBody()
+    {
+        ChangeState(ParserState.ParsingBlockBody);
+        charIndex = 0;
+        for (int i = 0; i < Types.Count; i++)
+        {
+            if (Types[i].Type == "type") this.statesForBlocks = BlockState.type;
+            else if (Types[i].Type == "cluster") statesForBlocks = BlockState.cluster;
+            else if (Types[i].Type == "wave") statesForBlocks = BlockState.wave;
+            ParseText(Types[i].content);
         }
     }
-    
     private void type(int ID, string Name, string Content)
     {
         Enemy enemyType = ScriptableObject.CreateInstance <Enemy>();
@@ -172,28 +187,38 @@ public class TomBenScriptableImporter : ScriptedImporter
 
         string[] WaveBlocks = Content.Split("!?");
         
-        Regex Pattern = new Regex("([CT])(\\d)(\\<\\d\\>)?(\\[\\d\\])?");
+        Regex Pattern = new Regex("([CT])(\\d)\\<?(\\d)?\\>?\\[?(\\d)?\\]?");
+        
+        
+        Debug.Log(WaveBlocks.Length);
+        
 
 
-        for (int a = 0; a < WaveBlocks.Length; a++)
+        for (int a = 0; a < WaveBlocks.Length - 1; a++)
         {
             Wave WaveType = ScriptableObject.CreateInstance<Wave>();
 
             WaveType.ID = ID;
-            WaveType.name = Name;
+            WaveType.Name = Name;
             Match waveGroups = Pattern.Match(WaveBlocks[a]);
+            
+            
 
             if (waveGroups.Success)
             {
-                Wave.waveData ParsedWave = new Wave.waveData();
+                Debug.Log($"{waveGroups.Success}");
                 if (waveGroups.Groups[1].Value == "C")
                 {
-                    ParsedWave.isCluster = true;
+                    WaveType.AddData(true, int.Parse(waveGroups.Groups[2].Value), waveGroups.Groups[3].Value ,waveGroups.Groups[4].Value);
+                   
                 }
+                else if (waveGroups.Groups[1].Value == "T")
+                {
+                    WaveType.AddData(false, int.Parse(waveGroups.Groups[2].Value), waveGroups.Groups[3].Value , waveGroups.Groups[4].Value);
 
-                    ParsedWave.ID = int.Parse(waveGroups.Groups[2].Value);
-                //ParsedWave.SpawnTime = int.Parse(waveGroups.Groups[3].Value);
-                //ParsedWave.PopulationDensity = int.Parse(waveGroups.Groups[4].Value);
+                }
+                
+           
             }
             
             context.AddObjectToAsset("waveObject", WaveType);
