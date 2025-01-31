@@ -18,6 +18,14 @@ public class TomBenScriptableImporter : ScriptedImporter
 
     private List<ParsedBlock> Types;
 
+    private List<ScriptableObject> TypesSO;
+    private List<ScriptableObject> ClusterSO;
+    private List<ScriptableObject> WavesSO;
+
+
+    private Holder scriptableHolder;
+    
+
     private AssetImportContext context;
 
     private int bodyIndex;
@@ -55,7 +63,11 @@ public class TomBenScriptableImporter : ScriptedImporter
         Debug.Log(state);
 		Debug.Log(filetext);
         Types = new List<ParsedBlock>();
-        Holder scriptableHolder = ScriptableObject.CreateInstance<Holder>();
+        TypesSO = new List<ScriptableObject>();
+        ClusterSO = new List<ScriptableObject>();
+        WavesSO = new List<ScriptableObject>();
+        
+        scriptableHolder = ScriptableObject.CreateInstance<Holder>();
         context.AddObjectToAsset("Holder", scriptableHolder);
         context.SetMainObject(scriptableHolder);
 		ParseText(filetext);
@@ -112,84 +124,6 @@ public class TomBenScriptableImporter : ScriptedImporter
                 }
                 case ParserState.ParsingBlockBody:
                 {
-                    switch (statesForBlocks)
-                    {
-                        case BlockState.type:
-                        {
-                            Debug.Log("ParsingBody");
-                            while (!finishedParse)
-                            {
-                                Debug.Log(charIndex);
-                                NextChar();
-                                if (ReachedEnd())
-                                {
-                                    finishedParse = true;
-                                }
-                            }
-
-                            string[] typeChunks = ContentToParse.Split("!?");
-
-                            float health = 0;
-                            float speed = 0;
-                            float damage = 0;
-
-
-                            Debug.Log(charBuffer);
-
-                            Regex typePattern = new Regex("(health|speed|damage)=>(\\d+)");
-
-                            for (int i = 0; i > typeChunks.Length - 1; i++)
-                            {
-
-                                Match typeBlocks = typePattern.Match(charBuffer);
-
-                                if (typeBlocks.Success)
-                                {
-                                    Debug.Log($"Header block = {typeBlocks.Groups[1].Value}");
-                                    if (typeBlocks.Groups[1].Value == "health")
-                                    {
-                                        health = float.Parse(typeBlocks.Groups[2].Value);
-                                        ClearBuffer();
-                                    }
-                                    else if (typeBlocks.Groups[1].Value == "speed")
-                                    {
-                                        speed = float.Parse(typeBlocks.Groups[2].Value);
-                                        ClearBuffer();
-                                    }
-                                    else if (typeBlocks.Groups[1].Value == "damage")
-                                    {
-                                        damage = float.Parse(typeBlocks.Groups[2].Value);
-                                        ClearBuffer();
-                                    }
-
-                                }
-                               
-                                Debug.Log("Reached End");
-                                ClearBuffer();
-                                charIndex = 0;
-                                Enemy enemyType = ScriptableObject.CreateInstance<Enemy>();
-                                enemyType.ID = Types[bodyIndex].ID;
-                                enemyType.enemyName = Types[bodyIndex].Name;
-                                enemyType.health = health;
-                                enemyType.speed = speed;
-                                enemyType.damage = damage;
-                                context.AddObjectToAsset("enemyObject", enemyType);
-                                
-                            }
-
-                            break;
-                        }
-                        case BlockState.wave:
-                        {
-                            break;
-                        }
-                        case BlockState.cluster:
-                        {
-                            break;
-                        }
-
-                    }
-
                     break;
                 }
                 case ParserState.Outside:
@@ -212,11 +146,11 @@ public class TomBenScriptableImporter : ScriptedImporter
 
         }
 
-        ParseBody();
+        FinishFirstParse();
         
     }
 
-    private void ParseBody()
+    private void FinishFirstParse()
     {
        
         ChangeState(ParserState.ParsingBlockBody);
@@ -226,65 +160,146 @@ public class TomBenScriptableImporter : ScriptedImporter
             if (Types[bodyIndex].Type == "type") statesForBlocks = BlockState.type;
             else if (Types[bodyIndex].Type == "cluster") statesForBlocks = BlockState.cluster;
             else if (Types[bodyIndex].Type == "wave") statesForBlocks = BlockState.wave;
-            ParseText(Types[bodyIndex].content);
+            //ParseText(Types[bodyIndex].content);
+            
+            ParseBody(Types[bodyIndex].ID, Types[bodyIndex].Name, Types[bodyIndex].content);
         }
 
         finishedParse = true;
     }
-    private void type(int ID, string Name, string Content)
+
+    private void ParseBody(int ID, string Name, string Content)
     {
-        Enemy enemyType = ScriptableObject.CreateInstance <Enemy>();
-        enemyType.ID = ID;
-        enemyType.enemyName = Name;
-        
-        context.AddObjectToAsset("enemyObject", enemyType);
+        charBuffer = Content;
 
-
-    }
-    private void wave(int ID, string Name, string Content)
-    {
-
-        string[] WaveBlocks = Content.Split("!?");
-        
-        Regex Pattern = new Regex("([CT])(\\d)\\<?(\\d)?\\>?\\[?(\\d)?\\]?");
-        
-        
-        Debug.Log(WaveBlocks.Length);
-        
-
-
-        for (int a = 0; a < WaveBlocks.Length - 1; a++)
+        switch (statesForBlocks)
         {
-            Wave WaveType = ScriptableObject.CreateInstance<Wave>();
-
-            WaveType.ID = ID;
-            WaveType.Name = Name;
-            Match waveGroups = Pattern.Match(WaveBlocks[a]);
-            
-            
-
-            if (waveGroups.Success)
+            case BlockState.type:
             {
-                Debug.Log($"{waveGroups.Success}");
-                if (waveGroups.Groups[1].Value == "C")
-                {
-                    WaveType.AddData(true, int.Parse(waveGroups.Groups[2].Value), waveGroups.Groups[3].Value ,waveGroups.Groups[4].Value);
-                   
-                }
-                else if (waveGroups.Groups[1].Value == "T")
-                {
-                    WaveType.AddData(false, int.Parse(waveGroups.Groups[2].Value), waveGroups.Groups[3].Value , waveGroups.Groups[4].Value);
+                Debug.Log($" charbuffer = {charBuffer}");
 
+                string[] typeChunks = charBuffer.Split("!?");
+
+                float health = 0;
+                float speed = 0;
+                float damage = 0;
+
+
+                Debug.Log($" typechunks = {typeChunks.Length}");
+
+                Regex typePattern = new Regex("(health|speed|damage)=>(\\d+)");
+
+                for (int i = 0; i < typeChunks.Length - 1; i++)
+                {
+                    Debug.Log($" typechunks = {typeChunks[i]}");
+
+                    Match typeBlocks = typePattern.Match(typeChunks[i]);
+
+                    if (typeBlocks.Success)
+                    {
+                        Debug.Log($"Header block = {typeBlocks.Groups[1].Value}");
+                        if (typeBlocks.Groups[1].Value == "health")
+                        {
+                            health = float.Parse(typeBlocks.Groups[2].Value);
+
+                        }
+                        else if (typeBlocks.Groups[1].Value == "speed")
+                        {
+                            speed = float.Parse(typeBlocks.Groups[2].Value);
+                        }
+                        else if (typeBlocks.Groups[1].Value == "damage")
+                        {
+                            damage = float.Parse(typeBlocks.Groups[2].Value);
+                        }
+
+                    }
                 }
+
+                Debug.Log("Reached End");
+                ClearBuffer();
+                charIndex = 0;
+                Enemy enemyType = ScriptableObject.CreateInstance<Enemy>();
+                enemyType.ID = ID;
+                enemyType.enemyName = Name;
+                enemyType.health = health;
+                enemyType.speed = speed;
+                enemyType.damage = damage;
+                enemyType.name = Name;
+                context.AddObjectToAsset("enemyObject", enemyType);
+                TypesSO.Add(enemyType);
                 
-           
+
+
+                break;
             }
-            
-            context.AddObjectToAsset("waveObject", WaveType);
+            case BlockState.wave:
+            {
+                string[] WaveBlocks = Content.Split("!?");
+
+                Regex Pattern = new Regex("([CT])(\\d)\\<?(\\d)?\\>?\\[?(\\d)?\\]?");
+
+                Debug.Log(WaveBlocks.Length);
+                Wave WaveType = ScriptableObject.CreateInstance<Wave>();
+                WaveType.ID = ID;
+                WaveType.Name = Name;
+                WaveType.name = Name;
+
+                for (int a = 0; a < WaveBlocks.Length - 1; a++)
+                {
+                    Match waveGroups = Pattern.Match(WaveBlocks[a]);
+                    if (waveGroups.Success)
+                    {
+                        Debug.Log($"{waveGroups.Success}");
+                        if (waveGroups.Groups[1].Value == "C")
+                        {
+                            WaveType.AddData(true, int.Parse(waveGroups.Groups[2].Value),
+                                waveGroups.Groups[3].Value, waveGroups.Groups[4].Value);
+
+                        }
+                        else if (waveGroups.Groups[1].Value == "T")
+                        {
+                            WaveType.AddData(false, int.Parse(waveGroups.Groups[2].Value),
+                                waveGroups.Groups[3].Value, waveGroups.Groups[4].Value);
+
+                        }
+                    }
+                    WavesSO.Add(WaveType);
+                    context.AddObjectToAsset("waveObject", WaveType);
+                }
+
+                break;
+            }
+            case BlockState.cluster:
+            {
+                Cluster clusterType = ScriptableObject.CreateInstance<Cluster>();
+                Regex Pattern = new Regex("(\\d+):(\\d+)");
+
+                Match clusterGroups = Pattern.Match(charBuffer);
+                if (clusterGroups.Success)
+                {
+                    clusterType.Type = int.Parse(clusterGroups.Groups[1].Value);
+                    clusterType.AmountToSpawn = int.Parse(clusterGroups.Groups[2].Value);
+                }
+
+                clusterType.ID = ID;
+                clusterType.clusterName = Name;
+                clusterType.name = Name;
+
+                ClusterSO.Add(clusterType);
+                context.AddObjectToAsset("clusterObject", clusterType);
+                break;
+            }
+
+            default:
+                throw new ArgumentOutOfRangeException();
         }
+
+        scriptableHolder.AddTypes(TypesSO);
+        scriptableHolder.AddCluster(ClusterSO);
+        scriptableHolder.AddWaves(WavesSO);
     }
-    
-    
+
+
     private void cluster(int ID, string Name, string Content)
     {
         Cluster ClusterType = ScriptableObject.CreateInstance<Cluster>();

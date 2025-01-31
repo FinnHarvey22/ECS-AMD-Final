@@ -27,7 +27,11 @@ public class Wave : ScriptableObject
         {
             
         }
+
         if (float.TryParse(SpawnTime, out float SpawnTimeFloatOutput))
+        {
+            
+        }
 
         
         Debug.Log($"{isCluster} + {ID} + {SpawnTime} + {populationDensity}");
