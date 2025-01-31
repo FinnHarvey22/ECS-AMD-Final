@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEditor.AssetImporters;
 using System.IO;
@@ -18,6 +19,10 @@ public class TomBenScriptableImporter : ScriptedImporter
     private List<ParsedBlock> Types;
 
     private AssetImportContext context;
+
+    private int bodyIndex;
+
+    private bool finishedParse;
 
    public struct ParsedBlock
     {
@@ -46,19 +51,19 @@ public class TomBenScriptableImporter : ScriptedImporter
         context = ctx;
 		string filetext = File.ReadAllText(context.assetPath);
         ChangeState(ParserState.Outside);
+        
+        Debug.Log(state);
 		Debug.Log(filetext);
         Types = new List<ParsedBlock>();
-        Holder ScriptableHolder = ScriptableObject.CreateInstance<Holder>();
-        context.AddObjectToAsset("Holder", ScriptableHolder);
-        context.SetMainObject(ScriptableHolder);
+        Holder scriptableHolder = ScriptableObject.CreateInstance<Holder>();
+        context.AddObjectToAsset("Holder", scriptableHolder);
+        context.SetMainObject(scriptableHolder);
 		ParseText(filetext);
     }
 
     public void ParseText(string fileContent)
     {
-
         ContentToParse = fileContent;
-
         while (!ReachedEnd())
         {
             switch (state)
@@ -74,10 +79,10 @@ public class TomBenScriptableImporter : ScriptedImporter
                     charBuffer = charBuffer[0..^4];
                     Debug.Log(charBuffer);
 
-                    Regex HeaderPattern = new Regex("(type|wave|cluster)\\s*-\\s*(\\d+)\\s*\\(([\\w\\s]+)\\)\\s*");
-                    Match HeaderBlocks = HeaderPattern.Match(charBuffer);
+                    Regex headerPattern = new Regex("(type|wave|cluster)\\s*-\\s*(\\d+)\\s*\\(([\\w\\s]+)\\)\\s*");
+                    Match headerBlocks = headerPattern.Match(charBuffer);
 
-                    if (HeaderBlocks.Success)
+                    if (headerBlocks.Success)
                     {
                         ClearBuffer();
                         while (!BufferHas("_Ben"))
@@ -89,9 +94,9 @@ public class TomBenScriptableImporter : ScriptedImporter
 
                         ParsedBlock parsedHeaders = new ParsedBlock()
                         {
-                            Type = HeaderBlocks.Groups[1].Value,
-                            Name = HeaderBlocks.Groups[3].Value,
-                            ID = int.Parse(HeaderBlocks.Groups[2].Value),
+                            Type = headerBlocks.Groups[1].Value,
+                            Name = headerBlocks.Groups[3].Value,
+                            ID = int.Parse(headerBlocks.Groups[2].Value),
                             content = charBuffer,
 
                         };
@@ -99,6 +104,8 @@ public class TomBenScriptableImporter : ScriptedImporter
                         Debug.Log(Types.Count);
 
                     }
+
+
                     //Debug.Log("parsing Header");
 
                     break;
@@ -109,6 +116,67 @@ public class TomBenScriptableImporter : ScriptedImporter
                     {
                         case BlockState.type:
                         {
+                            Debug.Log("ParsingBody");
+                            while (!finishedParse)
+                            {
+                                Debug.Log(charIndex);
+                                NextChar();
+                                if (ReachedEnd())
+                                {
+                                    finishedParse = true;
+                                }
+                            }
+
+                            string[] typeChunks = ContentToParse.Split("!?");
+
+                            float health = 0;
+                            float speed = 0;
+                            float damage = 0;
+
+
+                            Debug.Log(charBuffer);
+
+                            Regex typePattern = new Regex("(health|speed|damage)=>(\\d+)");
+
+                            for (int i = 0; i > typeChunks.Length - 1; i++)
+                            {
+
+                                Match typeBlocks = typePattern.Match(charBuffer);
+
+                                if (typeBlocks.Success)
+                                {
+                                    Debug.Log($"Header block = {typeBlocks.Groups[1].Value}");
+                                    if (typeBlocks.Groups[1].Value == "health")
+                                    {
+                                        health = float.Parse(typeBlocks.Groups[2].Value);
+                                        ClearBuffer();
+                                    }
+                                    else if (typeBlocks.Groups[1].Value == "speed")
+                                    {
+                                        speed = float.Parse(typeBlocks.Groups[2].Value);
+                                        ClearBuffer();
+                                    }
+                                    else if (typeBlocks.Groups[1].Value == "damage")
+                                    {
+                                        damage = float.Parse(typeBlocks.Groups[2].Value);
+                                        ClearBuffer();
+                                    }
+
+                                }
+                               
+                                Debug.Log("Reached End");
+                                ClearBuffer();
+                                charIndex = 0;
+                                Enemy enemyType = ScriptableObject.CreateInstance<Enemy>();
+                                enemyType.ID = Types[bodyIndex].ID;
+                                enemyType.enemyName = Types[bodyIndex].Name;
+                                enemyType.health = health;
+                                enemyType.speed = speed;
+                                enemyType.damage = damage;
+                                context.AddObjectToAsset("enemyObject", enemyType);
+                                
+                            }
+
                             break;
                         }
                         case BlockState.wave:
@@ -119,7 +187,7 @@ public class TomBenScriptableImporter : ScriptedImporter
                         {
                             break;
                         }
-                        
+
                     }
 
                     break;
@@ -130,6 +198,7 @@ public class TomBenScriptableImporter : ScriptedImporter
                     while (!BufferHas("_Tom"))
                     {
                         NextChar();
+                        Debug.Log(charBuffer);
                     }
 
                     charIndex = 0;
@@ -137,47 +206,37 @@ public class TomBenScriptableImporter : ScriptedImporter
 
                     break;
                 }
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
 
         }
+
         ParseBody();
         
     }
 
     private void ParseBody()
     {
+       
         ChangeState(ParserState.ParsingBlockBody);
         charIndex = 0;
-        for (int i = 0; i < Types.Count; i++)
+        for (bodyIndex = 0; bodyIndex < Types.Count; bodyIndex++)
         {
-            if (Types[i].Type == "type") this.statesForBlocks = BlockState.type;
-            else if (Types[i].Type == "cluster") statesForBlocks = BlockState.cluster;
-            else if (Types[i].Type == "wave") statesForBlocks = BlockState.wave;
-            ParseText(Types[i].content);
+            if (Types[bodyIndex].Type == "type") statesForBlocks = BlockState.type;
+            else if (Types[bodyIndex].Type == "cluster") statesForBlocks = BlockState.cluster;
+            else if (Types[bodyIndex].Type == "wave") statesForBlocks = BlockState.wave;
+            ParseText(Types[bodyIndex].content);
         }
+
+        finishedParse = true;
     }
     private void type(int ID, string Name, string Content)
     {
         Enemy enemyType = ScriptableObject.CreateInstance <Enemy>();
         enemyType.ID = ID;
         enemyType.enemyName = Name;
-        string[] ContentBlocks = Content.Split("!?");
-        foreach (string block in ContentBlocks)
-        {
-            ContentBlocks = block.Split("=>");
-            if (ContentBlocks[0].Contains("health"))
-            {
-                enemyType.health = float.Parse(ContentBlocks[1]);
-            }
-            else if (ContentBlocks[0].Contains("speed"))
-            {
-                enemyType.speed = float.Parse(ContentBlocks[1]);
-            }
-            else if (ContentBlocks[0].Contains("damage"))
-            {
-                enemyType.damage = float.Parse(ContentBlocks[1]);
-            }
-        }
+        
         context.AddObjectToAsset("enemyObject", enemyType);
 
 
@@ -256,6 +315,7 @@ public class TomBenScriptableImporter : ScriptedImporter
     private void ChangeState(ParserState state)
     {
         this.state = state;
+        Debug.Log(state);
         ClearBuffer();
     }
 
