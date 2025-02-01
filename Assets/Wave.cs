@@ -6,44 +6,40 @@ using System.Collections.Generic;
 public class Wave : ScriptableObject
 {
     public int ID;
-    public string Name; 
-    public List<WaveData> dataForWaves;
-
-    //list of structs, structs of structs
+    public string Name;
+    
+    private List<WaveData> _dataForWaves;
 
     [System.Serializable]
     public struct WaveData
     {
-        public bool isCluster;
+        public bool IsCluster;
         public int ID;
         public float SpawnTime;
         public int PopulationDensity;
     }
 
-    public void AddData(bool isCluster, int ID, string SpawnTime, string populationDensity)
+    //list of structs, structs of structs
+
+
+    public void AddData(TomBenScriptableImporter.Waves.WaveData data)
     {
-        
-        if (int.TryParse(populationDensity, out int PopDensityIntoutput))
+
+        if (_dataForWaves == null)
         {
-            
+            _dataForWaves = new List<WaveData>();
         }
 
-        if (float.TryParse(SpawnTime, out float SpawnTimeFloatOutput))
+        WaveData waveData = new WaveData()
         {
-            
-        }
-
-        
-        Debug.Log($"{isCluster} + {ID} + {SpawnTime} + {populationDensity}");
-        dataForWaves = new List<WaveData>();
-        WaveData test = new WaveData()
-        {
-            isCluster = isCluster,
-            ID = ID,
-            SpawnTime = SpawnTimeFloatOutput,
-            PopulationDensity = PopDensityIntoutput
+            ID = data.ID,
+            IsCluster = data.IsCluster,
+            SpawnTime = data.SpawnTime,
+            PopulationDensity = data.PopulationDensity
         };
         
-        dataForWaves.Add(test);
+
+        _dataForWaves.Add(waveData);
     }
+    
 }
