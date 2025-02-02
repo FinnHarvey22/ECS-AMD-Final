@@ -15,7 +15,7 @@ public class Cluster : ScriptableObject
         public int AmountToSpawn;
     }
 
-    public void AddData(int Type, int AmountToSpawn)
+    public void AddData(TomBenScriptableImporter.Clusters.ClusterData data)
     {
         if (DataForClusters == null)
         {
@@ -24,8 +24,8 @@ public class Cluster : ScriptableObject
 
         ClusterData clusterData = new ClusterData()
         {
-            AmountToSpawn = AmountToSpawn,
-            Type = Type,
+            AmountToSpawn = data.AmountToSpawn,
+            Type = data.Type,
         };
         
         DataForClusters.Add(clusterData);

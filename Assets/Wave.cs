@@ -8,7 +8,7 @@ public class Wave : ScriptableObject
     public int ID;
     public string Name;
     
-    private List<WaveData> _dataForWaves;
+    public List<WaveData> _dataForWaves;
 
     [System.Serializable]
     public struct WaveData
@@ -34,8 +34,8 @@ public class Wave : ScriptableObject
         {
             ID = data.ID,
             IsCluster = data.IsCluster,
-            SpawnTime = data.SpawnTime,
-            PopulationDensity = data.PopulationDensity
+            SpawnTime = (float)data.SpawnTime,
+            PopulationDensity = (int)data.PopulationDensity
         };
         
 
