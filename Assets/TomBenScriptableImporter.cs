@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
+using Unity.Entities.UniversalDelegates;
 
 
 [ScriptedImporter(1, "TomBen")]
@@ -233,7 +234,7 @@ public class TomBenScriptableImporter : ScriptedImporter
         {
             case BlockState.type:
             {
-                //Debug.Log($" charbuffer = {_charBuffer}");
+                Debug.Log($" charbuffer = {_charBuffer}");
 
                 string[] typeChunks = _charBuffer.Split("!?");
 
@@ -242,40 +243,41 @@ public class TomBenScriptableImporter : ScriptedImporter
                 float damage = 0;
 
 
-                //Debug.Log($" typechunks = {typeChunks.Length}");
+                Debug.Log($" typechunks = {typeChunks.Length}");
 
                 Regex typePattern = new Regex("(health|speed|damage)=>(\\d+)");
 
-                for (int i = 0; i < typeChunks.Length - 1; i++)
+                for (int i = 0; i < typeChunks.Length; i++)
                 {
-                    //Debug.Log($" typechunks = {typeChunks[i]}");
+                    Debug.Log($" typechunks = {typeChunks[i]}");
 
                     Match typeBlocks = typePattern.Match(typeChunks[i]);
 
                     if (typeBlocks.Success)
                     {
-                        //Debug.Log($"Header block = {typeBlocks.Groups[1].Value}");
+                        Debug.Log($"Header block = {typeBlocks.Groups[1].Value}");
                         if (typeBlocks.Groups[1].Value == "health")
                         {
-                            if (float.TryParse(typeBlocks.Groups[2].Value, out float healthOutput)) continue;
+                            Debug.Log($"healthoutput = {typeBlocks.Groups[2].Value}");
+                            
+                            if (float.TryParse(typeBlocks.Groups[2].Value, out float healthOutput)) ;
                             health = healthOutput;
+                            Debug.Log($"health = {health}");
 
                         }
                         else if (typeBlocks.Groups[1].Value == "speed")
                         {
-                            if (float.TryParse(typeBlocks.Groups[2].Value, out float speedOutput)) continue;
+                            if (float.TryParse(typeBlocks.Groups[2].Value, out float speedOutput)) ;
                             speed = speedOutput;
                         }
                         else if (typeBlocks.Groups[1].Value == "damage")
                         {
-                            if (float.TryParse(typeBlocks.Groups[2].Value, out float damageOutput)) continue;
+                            if (float.TryParse(typeBlocks.Groups[2].Value, out float damageOutput)) ;
                             damage = damageOutput;
                         }
 
                     }
                 }
-                //Debug.Log("Dupe checker");
-                
 
                 Enemies enemy = new Enemies()
                 {
@@ -289,11 +291,14 @@ public class TomBenScriptableImporter : ScriptedImporter
                 try
                 {
                     _enemyDictionary.Add(id, enemy);
-                    //Debug.Log("Object Added to Dictionary");
+                    Debug.Log("Object Added to Dictionary");
+                    Debug.Log($"enemydictionary with ID {id} = {_enemyDictionary[id].Health}");
                 }
                 catch (ArgumentException)
                 {
+                    Debug.Log($"key with id:{id} already exists");
                     enemy.EnemyName ??= _enemyDictionary[id].EnemyName;
+                    Debug.Log($"health = {_enemyDictionary[id].Health}");
                     enemy.Health ??= (float)_enemyDictionary[id].Health;
                     enemy.Speed ??= (float)_enemyDictionary[id].Speed;
                     enemy.Damage ??= (float)_enemyDictionary[id].Damage;
@@ -329,8 +334,8 @@ public class TomBenScriptableImporter : ScriptedImporter
                     Match waveGroups = pattern.Match(waveBlocks[a]);
                     if (waveGroups.Success)
                     {
-                        if (float.TryParse(waveGroups.Groups[3].Value, out float spawnResult)) continue;
-                        if (int.TryParse(waveGroups.Groups[4].Value, out int popDensityResult))continue;
+                        if (float.TryParse(waveGroups.Groups[3].Value, out float spawnResult))  ;
+                        if (int.TryParse(waveGroups.Groups[4].Value, out int popDensityResult)) ;
                         if (waveGroups.Groups[1].Value == "C")
                         {
                             //Debug.Log("is cluster");
@@ -438,10 +443,10 @@ public class TomBenScriptableImporter : ScriptedImporter
             //Debug.Log($"i Have iterated");
             Enemy enemyType = ScriptableObject.CreateInstance<Enemy>();
             enemyType.ID = enemies.ID;
-            enemyType.enemyName = enemies.EnemyName; 
-            enemyType.health = (float)enemies.Health;
-            enemyType.speed = (float)enemies.Speed;
-            enemyType.damage = (float)enemies.Damage;
+            enemyType.enemyName = enemies.EnemyName;
+            if (enemies.Health != null) enemyType.health = (float)enemies.Health;
+            if (enemies.Speed != null) enemyType.speed = (float)enemies.Speed;
+            if (enemies.Damage != null) enemyType.damage = (float)enemies.Damage;
             enemyType.name = enemies.EnemyName;
             _context.AddObjectToAsset($"enemyObject {enemyType.ID}", enemyType);
             _typesSo.Add(enemyType);
