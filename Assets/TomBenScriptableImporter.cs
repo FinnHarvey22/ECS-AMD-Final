@@ -320,7 +320,7 @@ public class TomBenScriptableImporter : ScriptedImporter
 
                 Regex pattern = new Regex("([CT])(\\d)\\<?(\\d)?\\>?\\[?(\\d)?\\]?");
 
-                //Debug.Log(waveBlocks.Length);
+                Debug.Log(waveBlocks.Length);
                 
                 Waves parseWaves = new Waves()
                 {
@@ -376,12 +376,12 @@ public class TomBenScriptableImporter : ScriptedImporter
                 }
                 catch (ArgumentException)
                 {
-                    //Debug.Log($"parsed waves count = {parseWaves.DataForWaves.ToList().Count}");
+                    Debug.Log($"parsed waves count = {parseWaves.DataForWaves.ToList().Count}");
                     foreach (Waves.WaveData data in parseWaves.DataForWaves.ToList())
                     {
                         _wavesDictionary[id].DataForWaves.Add(data);
                     }
-                    //Debug.Log($"parsed waves count = {parseWaves.DataForWaves.ToList().Count}");
+                    Debug.Log($"parsed waves count = {parseWaves.DataForWaves.ToList().Count}");
                 }
                 break;
             }
