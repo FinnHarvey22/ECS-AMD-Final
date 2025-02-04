@@ -318,7 +318,7 @@ public class TomBenScriptableImporter : ScriptedImporter
             {
                 string[] waveBlocks = content.Split("!?");
 
-                Regex pattern = new Regex("([CT])(\\d)\\<?(\\d)?\\>?\\[?(\\d)?\\]?");
+                Regex pattern = new Regex("([CT])(\\d+)\\<?(\\d+)?\\>?\\[?(\\d+)?\\]?");
 
                 Debug.Log(waveBlocks.Length);
                 
