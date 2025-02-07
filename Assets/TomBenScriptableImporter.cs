@@ -27,7 +27,7 @@ public class TomBenScriptableImporter : ScriptedImporter
     private Dictionary<int, Enemies> _enemyDictionary = new Dictionary<int, Enemies>();
     private Dictionary<int, Waves> _wavesDictionary = new Dictionary<int, Waves>();
     private Dictionary<int, Clusters> _clustersDictionary = new Dictionary<int, Clusters>();
-    
+
 
     private List<ScriptableObject> _typesSo;
     private List<ScriptableObject> _clusterSo;
@@ -35,7 +35,7 @@ public class TomBenScriptableImporter : ScriptedImporter
 
 
     private Holder _scriptableHolder;
-    
+
 
     private AssetImportContext _context;
 
@@ -43,7 +43,7 @@ public class TomBenScriptableImporter : ScriptedImporter
 
 
 
-   private struct ParsedBlock
+    private struct ParsedBlock
     {
         public string Type;
         public string Name;
@@ -61,13 +61,14 @@ public class TomBenScriptableImporter : ScriptedImporter
         public float? Speed;
         public float? Damage;
     }
-    
+
     [System.Serializable]
     public struct Waves
     {
         public int ID;
         public string Name;
         public List<WaveData> DataForWaves;
+
         public struct WaveData
         {
             public bool IsCluster;
@@ -82,7 +83,7 @@ public class TomBenScriptableImporter : ScriptedImporter
         public int ID;
         public string ClusterName;
         public List<ClusterData> DataForClusters;
-   
+
         [System.Serializable]
         public struct ClusterData
         {
@@ -91,6 +92,7 @@ public class TomBenScriptableImporter : ScriptedImporter
         }
 
     }
+
     enum ParserState
     {
         Outside,
@@ -104,28 +106,27 @@ public class TomBenScriptableImporter : ScriptedImporter
         cluster,
         wave,
     }
-	public override void OnImportAsset(AssetImportContext ctx)
-	{
+
+    public override void OnImportAsset(AssetImportContext ctx)
+    {
         _context = ctx;
-		string fileText = File.ReadAllText(_context.assetPath);
+        string fileText = File.ReadAllText(_context.assetPath);
         ChangeState(ParserState.Outside);
         
-        //Debug.Log(_state);
-		//Debug.Log(fileText);
         _types = new List<ParsedBlock>();
         _typesSo = new List<ScriptableObject>();
         _clusterSo = new List<ScriptableObject>();
         _wavesSo = new List<ScriptableObject>();
-        
+
         _clustersList = new List<Clusters>();
         _wavesList = new List<Waves>();
-        
+
         _scriptableHolder = ScriptableObject.CreateInstance<Holder>();
         _context.AddObjectToAsset("Holder", _scriptableHolder);
         _context.SetMainObject(_scriptableHolder);
-		ParseText(fileText);
+        ParseText(fileText);
     }
-    
+
 
     private void ParseText(string fileContent)
     {
@@ -136,16 +137,13 @@ public class TomBenScriptableImporter : ScriptedImporter
             {
                 case ParserState.ParsingHeader:
                 {
-                    //Debug.Log("HeaderParseStarted!");
+                    
                     while (!BufferHas("_Tom"))
                     {
-                        //Debug.Log(_charBuffer);
                         NextChar();
                     }
-                    //Debug.Log("Found Tom");
 
                     _charBuffer = _charBuffer[0..^4];
-                    //Debug.Log(_charBuffer);
 
                     Regex headerPattern = new Regex("(type|wave|cluster)\\s*-\\s*(\\d+)\\s*(\\(([\\w\\s]+)\\))?\\s*");
                     Match headerBlocks = headerPattern.Match(_charBuffer);
@@ -157,9 +155,6 @@ public class TomBenScriptableImporter : ScriptedImporter
                         {
                             NextChar();
                         }
-                        
-                        
-                        //Debug.Log("Found Ben");
 
                         _charBuffer = _charBuffer[0..^4];
 
@@ -172,15 +167,8 @@ public class TomBenScriptableImporter : ScriptedImporter
 
                         };
                         _types.Add(parsedHeaders);
-                        //Debug.Log(_types.Count);
                         ClearBuffer();
-                        
-
                     }
-
-
-                    ////Debug.Log("parsing Header");
-
                     break;
                 }
                 case ParserState.ParsingBlockBody:
@@ -189,12 +177,10 @@ public class TomBenScriptableImporter : ScriptedImporter
                 }
                 case ParserState.Outside:
                 {
-                    //Debug.Log("ParseStarted!");
                     while (!BufferHas("_Tom"))
                     {
                         NextChar();
                     }
-                    //Debug.Log("Found Tom");
 
                     _charIndex = 0;
                     ChangeState(ParserState.ParsingHeader);
@@ -208,7 +194,6 @@ public class TomBenScriptableImporter : ScriptedImporter
         }
 
         FinishFirstParse();
-        
     }
 
     private void FinishFirstParse()
@@ -220,21 +205,24 @@ public class TomBenScriptableImporter : ScriptedImporter
             if (_types[_bodyIndex].Type == "type") _statesForBlocks = BlockState.type;
             else if (_types[_bodyIndex].Type == "cluster") _statesForBlocks = BlockState.cluster;
             else if (_types[_bodyIndex].Type == "wave") _statesForBlocks = BlockState.wave;
-            //ParseText(Types[bodyIndex].content);
             ParseBody(_types[_bodyIndex].ID, _types[_bodyIndex].Name, _types[_bodyIndex].Content);
         }
+
         DataInput();
     }
 
-    private void ParseBody(int id, string name, string content)
+    private void ParseBody(int id, string BlockName, string content)
     {
         _charBuffer = content;
+        if (BlockName == "")
+        {
+            BlockName = "Unnamed";
+        }
 
         switch (_statesForBlocks)
         {
             case BlockState.type:
             {
-                Debug.Log($" charbuffer = {_charBuffer}");
 
                 string[] typeChunks = _charBuffer.Split("!?");
 
@@ -242,28 +230,19 @@ public class TomBenScriptableImporter : ScriptedImporter
                 float speed = 0;
                 float damage = 0;
 
-
-                Debug.Log($" typechunks = {typeChunks.Length}");
-
                 Regex typePattern = new Regex("(health|speed|damage)=>(\\d+)");
 
                 for (int i = 0; i < typeChunks.Length; i++)
                 {
-                    Debug.Log($" typechunks = {typeChunks[i]}");
 
                     Match typeBlocks = typePattern.Match(typeChunks[i]);
 
                     if (typeBlocks.Success)
                     {
-                        Debug.Log($"Header block = {typeBlocks.Groups[1].Value}");
                         if (typeBlocks.Groups[1].Value == "health")
                         {
-                            Debug.Log($"healthoutput = {typeBlocks.Groups[2].Value}");
-                            
                             if (float.TryParse(typeBlocks.Groups[2].Value, out float healthOutput)) ;
                             health = healthOutput;
-                            Debug.Log($"health = {health}");
-
                         }
                         else if (typeBlocks.Groups[1].Value == "speed")
                         {
@@ -273,17 +252,17 @@ public class TomBenScriptableImporter : ScriptedImporter
                         else if (typeBlocks.Groups[1].Value == "damage")
                         {
                             if (float.TryParse(typeBlocks.Groups[2].Value, out float damageOutput)) ;
+
                             damage = damageOutput;
                         }
-
                     }
                 }
 
                 Enemies enemy = new Enemies()
                 {
-                    EnemyName = name is "" ? null : name,
+                    EnemyName = BlockName is "Unnamed" ? null : BlockName,
                     ID = id,
-                    Health = health is 0 ? null : health, 
+                    Health = health is 0 ? null : health,
                     Speed = speed is 0 ? null : speed,
                     Damage = damage is 0 ? null : damage,
 
@@ -291,27 +270,20 @@ public class TomBenScriptableImporter : ScriptedImporter
                 try
                 {
                     _enemyDictionary.Add(id, enemy);
-                    Debug.Log("Object Added to Dictionary");
-                    Debug.Log($"enemydictionary with ID {id} = {_enemyDictionary[id].Health}");
                 }
                 catch (ArgumentException)
                 {
-                    Debug.Log($"key with id:{id} already exists");
                     enemy.EnemyName ??= _enemyDictionary[id].EnemyName;
-                    Debug.Log($"health = {_enemyDictionary[id].Health}");
                     enemy.Health ??= (float)_enemyDictionary[id].Health;
                     enemy.Speed ??= (float)_enemyDictionary[id].Speed;
                     enemy.Damage ??= (float)_enemyDictionary[id].Damage;
 
                     _enemyDictionary[id] = enemy;
-                    //Debug.Log($"Object Appended in Dictionary {_enemyDictionary[id].EnemyName}");
-                    //Debug.Log(_enemyDictionary.Count);
                 }
 
-                //Debug.Log("Reached End");
+               
                 ClearBuffer();
                 _charIndex = 0;
-                //Debug.Log($"length = {_enemyDictionary.Count}");
                 break;
             }
             case BlockState.wave:
@@ -320,47 +292,40 @@ public class TomBenScriptableImporter : ScriptedImporter
 
                 Regex pattern = new Regex("([CT])(\\d+)\\<?(\\d+)?\\>?\\[?(\\d+)?\\]?");
 
-                Debug.Log(waveBlocks.Length);
-                
                 Waves parseWaves = new Waves()
                 {
                     ID = id,
-                    Name = name,
+                    Name = BlockName,
                     DataForWaves = new List<Waves.WaveData>()
                 };
-                Waves.WaveData waveData;
-                for (int a = 0; a < waveBlocks.Length - 1; a++)
+                for (int a = 0; a < waveBlocks.Length; a++)
                 {
                     Match waveGroups = pattern.Match(waveBlocks[a]);
                     if (waveGroups.Success)
                     {
-                        if (float.TryParse(waveGroups.Groups[3].Value, out float spawnResult))  ;
+                        if (float.TryParse(waveGroups.Groups[3].Value, out float spawnResult)) ;
                         if (int.TryParse(waveGroups.Groups[4].Value, out int popDensityResult)) ;
+                        Waves.WaveData waveData;
                         if (waveGroups.Groups[1].Value == "C")
                         {
-                            //Debug.Log("is cluster");
                             waveData = new Waves.WaveData()
                             {
                                 IsCluster = true,
                                 ID = int.Parse(waveGroups.Groups[2].Value),
                                 SpawnTime = spawnResult,
                                 PopulationDensity = popDensityResult,
-
                             };
                             parseWaves.DataForWaves.Add(waveData);
-                            
+
                         }
                         else if (waveGroups.Groups[1].Value == "T")
                         {
-                            //Debug.Log("isnt cluster");
                             waveData = new Waves.WaveData()
                             {
-                                
                                 IsCluster = false,
                                 ID = int.Parse(waveGroups.Groups[2].Value),
                                 SpawnTime = spawnResult,
                                 PopulationDensity = popDensityResult,
-
                             };
                             parseWaves.DataForWaves.Add(waveData);
 
@@ -369,43 +334,50 @@ public class TomBenScriptableImporter : ScriptedImporter
                     }
 
                 }
-                
+
                 try
                 {
                     _wavesDictionary.Add(id, parseWaves);
                 }
                 catch (ArgumentException)
                 {
-                    Debug.Log($"parsed waves count = {parseWaves.DataForWaves.ToList().Count}");
                     foreach (Waves.WaveData data in parseWaves.DataForWaves.ToList())
                     {
                         _wavesDictionary[id].DataForWaves.Add(data);
                     }
-                    Debug.Log($"parsed waves count = {parseWaves.DataForWaves.ToList().Count}");
+
+                    if (BlockName != "Unnamed")
+                    {
+                        Waves tempWaves = new Waves()
+                        {
+                            Name = BlockName,
+                            ID = id,
+                            DataForWaves = _wavesDictionary[id].DataForWaves
+                        };
+                        _wavesDictionary[id] = tempWaves;
+                    }
                 }
+
                 break;
             }
             case BlockState.cluster:
             {
-
                 string[] clusterChunks = content.Split("!?");
+                
                 Regex pattern = new Regex("(\\d+):(\\d+)");
-                Clusters.ClusterData clusterData;
-
-
 
                 Clusters cluster = new Clusters()
                 {
-                    ClusterName = name,
+                    ClusterName = BlockName,
                     ID = id,
                     DataForClusters = new List<Clusters.ClusterData>()
                 };
-                for(int i = 0; i < clusterChunks.Length -1;i++)
+                for (int i = 0; i < clusterChunks.Length - 1; i++)
                 {
                     Match clusterGroups = pattern.Match(clusterChunks[i]);
                     if (clusterGroups.Success)
                     {
-                        clusterData = new Clusters.ClusterData()
+                        Clusters.ClusterData clusterData = new Clusters.ClusterData()
                         {
                             Type = int.Parse(clusterGroups.Groups[1].Value),
                             AmountToSpawn = int.Parse(clusterGroups.Groups[2].Value),
@@ -424,23 +396,30 @@ public class TomBenScriptableImporter : ScriptedImporter
                     {
                         _clustersDictionary[id].DataForClusters.Add(data);
                     }
+
+                    if (BlockName != "Unnamed")
+                    {
+                        Clusters clusterTemp = new Clusters()
+                        {
+                            ClusterName = BlockName,
+                            ID = id,
+                            DataForClusters = _clustersDictionary[id].DataForClusters
+                        };
+
+                        _clustersDictionary[id] = clusterTemp;
+                    }
                 }
                 break;
             }
-
             default:
                 throw new ArgumentOutOfRangeException();
         }
-
-
-       
     }
 
     private void DataInput()
     {
         foreach (Enemies enemies in _enemyDictionary.Values)
         {
-            //Debug.Log($"i Have iterated");
             Enemy enemyType = ScriptableObject.CreateInstance<Enemy>();
             enemyType.ID = enemies.ID;
             enemyType.enemyName = enemies.EnemyName;
@@ -451,18 +430,18 @@ public class TomBenScriptableImporter : ScriptedImporter
             _context.AddObjectToAsset($"enemyObject {enemyType.ID}", enemyType);
             _typesSo.Add(enemyType);
         }
+
         foreach (Waves waves in _wavesDictionary.Values)
         {
             Wave waveType = ScriptableObject.CreateInstance<Wave>();
             waveType.ID = waves.ID;
             waveType.Name = waves.Name;
             waveType.name = waves.Name;
-            //Debug.Log($"length of wavedate = {_wavesDictionary[waves.ID].DataForWaves.Count}");
             foreach (Waves.WaveData waveDataVar in _wavesDictionary[waves.ID].DataForWaves)
-            { 
-                //Debug.Log("hello world");
+            {
                 waveType.AddData(waveDataVar);
             }
+
             _wavesSo.Add(waveType);
             _context.AddObjectToAsset($"waveObject {waveType.ID}", waveType);
         }
@@ -476,11 +455,11 @@ public class TomBenScriptableImporter : ScriptedImporter
             {
                 clusterType.AddData(clusterDataVar);
             }
+
             clusterType.name = clusters.ClusterName;
             _clusterSo.Add(clusterType);
             _context.AddObjectToAsset($"clusterObject {clusterType.ID}", clusterType);
         }
-        
         
         _scriptableHolder.AddTypes(_typesSo);
         _scriptableHolder.AddCluster(_clusterSo);
@@ -488,11 +467,11 @@ public class TomBenScriptableImporter : ScriptedImporter
 
     }
 
-    
     private void ClearBuffer() => _charBuffer = "";
 
     private bool ReachedEnd() => _charIndex >= _contentToParse.Length;
 
+    // ReSharper disable once UnusedMethodReturnValue.Local
     private char NextChar()
     {
         _charBuffer += _contentToParse[_charIndex];
@@ -502,12 +481,12 @@ public class TomBenScriptableImporter : ScriptedImporter
     private void ChangeState(ParserState parserState)
     {
         this._state = parserState;
-        //Debug.Log(parserState);
         ClearBuffer();
     }
 
     private bool BufferHas(string token) => _charBuffer.EndsWith(token);
 
+    // ReSharper disable once UnusedMember.Local
     private bool BufferHasAny(params string[] tokens)
     {
         foreach (var token in tokens)
@@ -519,9 +498,4 @@ public class TomBenScriptableImporter : ScriptedImporter
         }
         return false;
     }
-
-
-
 }
-
-
