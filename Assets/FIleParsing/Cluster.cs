@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "Cluster", menuName = "Scriptable Objects/Cluster")]
@@ -6,7 +5,9 @@ public class Cluster : ScriptableObject
 {
     public int ID;
     public string clusterName;
-    public List<ClusterData> DataForClusters;
+    //public List<ClusterData> DataForClusters;
+    
+    public TomBenScriptableImporter.Clusters.ClusterData[] clusterDatas;
    
     [System.Serializable]
   public struct ClusterData
@@ -15,11 +16,16 @@ public class Cluster : ScriptableObject
         public int AmountToSpawn;
     }
 
-    public void AddData(TomBenScriptableImporter.Clusters.ClusterData data)
-    {
-        if (DataForClusters == null)
+    /* public void AddData(TomBenScriptableImporter.Clusters.ClusterData data, int length)
+     {
+         if (DataForClusters == null)
+         {
+             DataForClusters = new List<ClusterData>();
+         }
+
+        if (clusterDatas == null)
         {
-            DataForClusters = new List<ClusterData>();
+            //clusterDatas = new ClusterData[length];
         }
 
         ClusterData clusterData = new ClusterData()
@@ -29,5 +35,5 @@ public class Cluster : ScriptableObject
         };
         
         DataForClusters.Add(clusterData);
-    }
+    }*/
 }

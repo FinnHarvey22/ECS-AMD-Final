@@ -8,7 +8,9 @@ public class Wave : ScriptableObject
     public int ID;
     public string Name;
     
-    public List<WaveData> _dataForWaves;
+    //public List<WaveData> _dataForWaves;
+
+    public TomBenScriptableImporter.Waves.WaveData[] WaveDataArray;
 
     [System.Serializable]
     public struct WaveData
@@ -22,7 +24,7 @@ public class Wave : ScriptableObject
     //list of structs, structs of structs
 
 
-    public void AddData(TomBenScriptableImporter.Waves.WaveData data)
+   /* public void AddData(TomBenScriptableImporter.Waves.WaveData data)
     {
 
         if (_dataForWaves == null)
@@ -40,6 +42,6 @@ public class Wave : ScriptableObject
         
 
         _dataForWaves.Add(waveData);
-    }
+    }*/
     
 }

@@ -68,13 +68,14 @@ public class TomBenScriptableImporter : ScriptedImporter
         public int ID;
         public string Name;
         public List<WaveData> DataForWaves;
-
+        
+        [System.Serializable]
         public struct WaveData
         {
             public bool IsCluster;
             public int ID;
-            public float? SpawnTime;
-            public int? PopulationDensity;
+            public float SpawnTime;
+            public int PopulationDensity;
         }
     }
 
@@ -211,12 +212,12 @@ public class TomBenScriptableImporter : ScriptedImporter
         DataInput();
     }
 
-    private void ParseBody(int id, string BlockName, string content)
+    private void ParseBody(int id, string blockName, string content)
     {
         _charBuffer = content;
-        if (BlockName == "")
+        if (blockName == "")
         {
-            BlockName = "Unnamed";
+            blockName = "Unnamed";
         }
 
         switch (_statesForBlocks)
@@ -260,7 +261,7 @@ public class TomBenScriptableImporter : ScriptedImporter
 
                 Enemies enemy = new Enemies()
                 {
-                    EnemyName = BlockName is "Unnamed" ? null : BlockName,
+                    EnemyName = blockName is "Unnamed" ? null : blockName,
                     ID = id,
                     Health = health is 0 ? null : health,
                     Speed = speed is 0 ? null : speed,
@@ -295,7 +296,7 @@ public class TomBenScriptableImporter : ScriptedImporter
                 Waves parseWaves = new Waves()
                 {
                     ID = id,
-                    Name = BlockName,
+                    Name = blockName,
                     DataForWaves = new List<Waves.WaveData>()
                 };
                 for (int a = 0; a < waveBlocks.Length; a++)
@@ -346,11 +347,11 @@ public class TomBenScriptableImporter : ScriptedImporter
                         _wavesDictionary[id].DataForWaves.Add(data);
                     }
 
-                    if (BlockName != "Unnamed")
+                    if (blockName != "Unnamed")
                     {
                         Waves tempWaves = new Waves()
                         {
-                            Name = BlockName,
+                            Name = blockName,
                             ID = id,
                             DataForWaves = _wavesDictionary[id].DataForWaves
                         };
@@ -368,7 +369,7 @@ public class TomBenScriptableImporter : ScriptedImporter
 
                 Clusters cluster = new Clusters()
                 {
-                    ClusterName = BlockName,
+                    ClusterName = blockName,
                     ID = id,
                     DataForClusters = new List<Clusters.ClusterData>()
                 };
@@ -397,11 +398,11 @@ public class TomBenScriptableImporter : ScriptedImporter
                         _clustersDictionary[id].DataForClusters.Add(data);
                     }
 
-                    if (BlockName != "Unnamed")
+                    if (blockName != "Unnamed")
                     {
                         Clusters clusterTemp = new Clusters()
                         {
-                            ClusterName = BlockName,
+                            ClusterName = blockName,
                             ID = id,
                             DataForClusters = _clustersDictionary[id].DataForClusters
                         };
@@ -437,11 +438,11 @@ public class TomBenScriptableImporter : ScriptedImporter
             waveType.ID = waves.ID;
             waveType.Name = waves.Name;
             waveType.name = waves.Name;
-            foreach (Waves.WaveData waveDataVar in _wavesDictionary[waves.ID].DataForWaves)
+            /*foreach (Waves.WaveData waveDataVar in _wavesDictionary[waves.ID].DataForWaves)
             {
                 waveType.AddData(waveDataVar);
-            }
-
+            }*/
+            waveType.WaveDataArray = _wavesDictionary[waves.ID].DataForWaves.ToArray();
             _wavesSo.Add(waveType);
             _context.AddObjectToAsset($"waveObject {waveType.ID}", waveType);
         }
@@ -451,10 +452,12 @@ public class TomBenScriptableImporter : ScriptedImporter
             Cluster clusterType = ScriptableObject.CreateInstance<Cluster>();
             clusterType.ID = clusters.ID;
             clusterType.clusterName = clusters.ClusterName;
-            foreach (Clusters.ClusterData clusterDataVar in _clustersDictionary[clusters.ID].DataForClusters)
+            /*foreach (Clusters.ClusterData clusterDataVar in _clustersDictionary[clusters.ID].DataForClusters)
             {
-                clusterType.AddData(clusterDataVar);
-            }
+                clusterType.AddData(clusterDataVar,_clustersDictionary.Count);
+            }*/
+
+            clusterType.clusterDatas = _clustersDictionary[clusters.ID].DataForClusters.ToArray();
 
             clusterType.name = clusters.ClusterName;
             _clusterSo.Add(clusterType);
