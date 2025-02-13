@@ -5,6 +5,7 @@ public class EnemySpawnerAuthoring : MonoBehaviour
 {
 	public GameObject PrefabToSpawn;
 	public float SpawnDelay;
+	
 
 	private class EnemySpawnerBaker : Baker<EnemySpawnerAuthoring>
 	{

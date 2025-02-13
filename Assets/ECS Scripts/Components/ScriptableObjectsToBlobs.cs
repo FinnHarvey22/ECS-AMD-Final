@@ -7,137 +7,233 @@ using UnityEngine;
 public class ScriptableObjectsToBlobs : MonoBehaviour
 {
     public Holder m_holder;
-    public Enemy[] m_Enemy;
-    public Cluster[] m_Cluster;
-    public Wave[] m_Wave;
+    public int WaveNumber;
+
     private class ScriptableObjectsToBlobsBaker : Baker<ScriptableObjectsToBlobs>
     {
-
-
         public override void Bake(ScriptableObjectsToBlobs authoring)
         {
             Holder[] holders = Resources.LoadAll<Holder>("");
-            int selectedIndex = Mathf.Min(0, Array.FindIndex<Holder>(holders, 0, holders.Length, (Holder test) => { return test == authoring.m_holder; }));
+            int selectedIndex = Mathf.Min(0,
+                Array.FindIndex<Holder>(holders, 0, holders.Length,
+                    (Holder test) => { return test == authoring.m_holder; }));
 
-            Enemy[] enemies = new Enemy[holders[selectedIndex].Types.Length];
-            enemies.AddRange(holders[selectedIndex].Types);
-            
-            Cluster[] clusters = new Cluster[holders[selectedIndex].Clusters.Length];
-            clusters.AddRange(holders[selectedIndex].Clusters);
+            Debug.Log($"enemy length = {holders[selectedIndex].Types.Length}");
+            Debug.Log($"cluster length = {holders[selectedIndex].Clusters.Length}");
+            Debug.Log($"wave length = {holders[selectedIndex].Waves.Length}");
 
-            Wave[] waves = new Wave[holders[selectedIndex].Waves.Length];
-            waves.AddRange(holders[selectedIndex].Waves);
-            
-            Unity.Entities.Hash128 enemyCustomHash = new Unity.Entities.Hash128((uint)enemies.Length, (uint)enemies[0].damage, (uint)enemies[^1].damage, 0);
-            
-            if (!TryGetBlobAssetReference<EnemyDataPool>(enemyCustomHash, out BlobAssetReference<EnemyDataPool> enemyPool))
+            Entity e = GetEntity(TransformUsageFlags.None);
+
+            if (holders[selectedIndex].Types.Length != 0)
             {
-                BlobBuilder enemyBuilder = new BlobBuilder(Allocator.Temp);
-                ref EnemyDataPool enemyDataPool = ref enemyBuilder.ConstructRoot<EnemyDataPool>();
 
-                BlobBuilderArray<Enemies> arrayBuilder = enemyBuilder.Allocate(ref enemyDataPool.EnemyPool, enemies.Length);
+                Unity.Entities.Hash128 enemyCustomHash = new Unity.Entities.Hash128(
+                    (uint)holders[selectedIndex].Types.Length,
+                    (uint)holders[selectedIndex].Types[0].damage, (uint)holders[selectedIndex].Types[^1].damage, 0);
 
-                for (int i = 0; i < enemies.Length; i++)
+                if (!TryGetBlobAssetReference<EnemyDataPool>(enemyCustomHash,
+                        out BlobAssetReference<EnemyDataPool> enemyPool))
                 {
-                    arrayBuilder[i] = new Enemies
+                    BlobBuilder builder = new BlobBuilder(Allocator.Temp);
+                    ref EnemyDataPool enemyDataPool = ref builder.ConstructRoot<EnemyDataPool>();
+
+                    BlobBuilderArray<Enemies> arrayBuilder = builder.Allocate(ref enemyDataPool.EnemyPool,
+                        holders[selectedIndex].Types.Length);
+
+                    for (int i = 0; i < holders[selectedIndex].Types.Length; i++)
                     {
-                        ID = enemies[i].ID,
-                        damage = enemies[i].damage,
-                        health = enemies[i].health,
-                        speed = enemies[i].speed
-                    };
+                        arrayBuilder[i] = new Enemies
+                        {
+                            ID = holders[selectedIndex].Types[i].ID,
+                            Damage = holders[selectedIndex].Types[i].damage,
+                            Health = holders[selectedIndex].Types[i].health,
+                            Speed = holders[selectedIndex].Types[i].speed
+                        };
+                    }
+
+                    enemyPool = builder.CreateBlobAssetReference<EnemyDataPool>(Allocator.Persistent);
+                    builder.Dispose();
+
+                    AddBlobAssetWithCustomHash<EnemyDataPool>(ref enemyPool, enemyCustomHash);
                 }
 
-                enemyPool = enemyBuilder.CreateBlobAssetReference<EnemyDataPool>(Allocator.Persistent);
-                enemyBuilder.Dispose();
-
-                AddBlobAssetWithCustomHash<EnemyDataPool>(ref enemyPool, enemyCustomHash);
-            }
-            
-            Unity.Entities.Hash128 clusterCustomHash = new Unity.Entities.Hash128((uint)clusters.Length, (uint)clusters[0].ID, 
-                (uint)clusters[0].clusterDatas.Length, 0);
-            
-            if (!TryGetBlobAssetReference<ClusterDataPool>(clusterCustomHash, out BlobAssetReference<ClusterDataPool> clusterPool))
-            {
-                BlobBuilder clusterBuilder = new BlobBuilder(Allocator.Temp);
-                
-                ref ClusterDataPool clusterDataPool = ref clusterBuilder.ConstructRoot<ClusterDataPool>();
-                
-                BlobBuilderArray<Clusters> arrayBuilder = clusterBuilder.Allocate(ref clusterDataPool.ClusterPool, clusters.Length);
-                
-                for (int i = 0; i < clusters.Length; i++)
+                AddComponent(e, new ManagerEnemyPool()
                 {
-                    arrayBuilder[i] = new Clusters { ID = clusters[i].ID };
-                    BlobBuilderArray<Clusters.ClusterData> clusterArrayBuilder = 
-                        clusterBuilder.Allocate(ref arrayBuilder[i].ClusterDatas, clusters[i].clusterDatas.Length);
-                    
-                    arrayBuilder[i] = new Clusters
+                    EnemyPool = enemyPool
+                });
+            }
+
+            if (holders[selectedIndex].Clusters.Length != 0)
+            {
+
+                Unity.Entities.Hash128 clusterCustomHash = new Unity.Entities.Hash128(
+                    (uint)holders[selectedIndex].Clusters.Length,
+                    (uint)holders[selectedIndex].Clusters[0].ID,
+                    (uint)holders[selectedIndex].Clusters[0].clusterDatas.Length, 0);
+
+                if (!TryGetBlobAssetReference<ClusterDataPool>(clusterCustomHash,
+                        out BlobAssetReference<ClusterDataPool> clusterPool))
+                {
+                    BlobBuilder builder = new BlobBuilder(Allocator.Temp);
+
+                    ref ClusterDataPool clusterDataPool = ref builder.ConstructRoot<ClusterDataPool>();
+
+                    BlobBuilderArray<Clusters> arrayBuilder =
+                        builder.Allocate(ref clusterDataPool.ClusterPool, holders[selectedIndex].Clusters.Length);
+
+                    for (int i = 0; i < holders[selectedIndex].Clusters.Length; i++)
                     {
-                        
-                    };
+                        arrayBuilder[i] = new Clusters { ID = holders[selectedIndex].Clusters[i].ID };
+                        BlobBuilderArray<Clusters.ClusterData> clusterArrayBuilder =
+                            builder.Allocate(ref arrayBuilder[i].CDataArray,
+                                holders[selectedIndex].Clusters[i].clusterDatas.Length);
+
+                        for (int entity = 0; entity < clusterArrayBuilder.Length; entity++)
+                        {
+                            clusterArrayBuilder[entity].Type =
+                                holders[selectedIndex].Clusters[i].clusterDatas[entity].Type;
+                            clusterArrayBuilder[entity].AmountToSpawn = holders[selectedIndex].Clusters[i]
+                                .clusterDatas[entity].AmountToSpawn;
+                        }
+
+                    }
+
+                    clusterPool = builder.CreateBlobAssetReference<ClusterDataPool>(Allocator.Persistent);
+                    builder.Dispose();
+
+                    AddBlobAssetWithCustomHash<ClusterDataPool>(ref clusterPool, clusterCustomHash);
                 }
 
-                clusterPool = clusterBuilder.CreateBlobAssetReference<ClusterDataPool>(Allocator.Persistent);
-                clusterBuilder.Dispose();
-
-                AddBlobAssetWithCustomHash<ClusterDataPool>(ref clusterPool, clusterCustomHash);
+                AddComponent(e, new ManagerClusterPool
+                {
+                    ClusterPool = clusterPool
+                });
             }
+
+            if (holders[selectedIndex].Waves.Length != 0)
+            {
+                Unity.Entities.Hash128 waveCustomHash = new Unity.Entities.Hash128(
+                    (uint)holders[selectedIndex].Waves.Length, (uint)holders[selectedIndex].Waves[0].ID,
+                    (uint)holders[selectedIndex].Waves[0].WaveDataArray.Length, 0);
+
+                if (!TryGetBlobAssetReference<WaveDataPool>(waveCustomHash,
+                        out BlobAssetReference<WaveDataPool> wavePool))
+                {
+                    BlobBuilder builder = new BlobBuilder(Allocator.Temp);
+
+                    ref WaveDataPool wDataPool = ref builder.ConstructRoot<WaveDataPool>();
+
+                    BlobBuilderArray<Waves> arrayBuilder =
+                        builder.Allocate(ref wDataPool.WavePool, holders[selectedIndex].Waves.Length);
+
+                    for (int i = 0; i < holders[selectedIndex].Waves.Length; i++)
+                    {
+                        arrayBuilder[i] = new Waves() { ID = holders[selectedIndex].Waves[i].ID };
+                        BlobBuilderArray<Waves.WaveData> waveArrayBuilder =
+                            builder.Allocate(ref arrayBuilder[i].WDataArray,
+                                holders[selectedIndex].Waves[i].WaveDataArray.Length);
+
+                        for (int entity = 0; entity < waveArrayBuilder.Length; entity++)
+                        {
+                            waveArrayBuilder[entity].ID = holders[selectedIndex].Waves[i].WaveDataArray[entity].ID;
+                            waveArrayBuilder[entity].PopulationDensity = holders[selectedIndex].Waves[i]
+                                .WaveDataArray[entity].PopulationDensity;
+                            waveArrayBuilder[entity].SpawnTime =
+                                holders[selectedIndex].Waves[i].WaveDataArray[entity].SpawnTime;
+                            waveArrayBuilder[entity].IsCluster =
+                                holders[selectedIndex].Waves[i].WaveDataArray[entity].IsCluster;
+                        }
+
+                    }
+
+                    wavePool = builder.CreateBlobAssetReference<WaveDataPool>(Allocator.Persistent);
+                    builder.Dispose();
+
+                    AddBlobAssetWithCustomHash<WaveDataPool>(ref wavePool, waveCustomHash);
+
+                    AddComponent(e, new ManagerWavePool
+                    {
+                        WavePool = wavePool
+                    });
+                }
+            }
+
+
+            AddComponent(e, new ManagerTag());
+            
         }
     }
-}
 
-public struct EnemyDataPool
-{
-    public BlobArray<Enemies> EnemyPool;
-}
-public struct ClusterDataPool
-{
-    public BlobArray<Clusters> ClusterPool;
-}
-public struct WaveDataPool
-{
-    public BlobArray<Waves> WavePool;
-}
+    public struct ManagerTag : IComponentData { }
 
-
-
-public struct Enemies
-{
-    //public BlobString enemyName;
-    public int ID;
-    public float health;
-    public float speed;
-    public float damage;
-};
-
-public struct Clusters
-{
-    public int ID;
-    //public BlobString clusterName;
     
-    public BlobArray<ClusterData>[] ClusterDatas;
-    
-    public struct ClusterData
+    public struct EnemyDataPool
     {
-        public int Type;
-        public int AmountToSpawn;
+        public BlobArray<Enemies> EnemyPool;
     }
-};
-public struct Waves
-{
-    public int ID;
-    //public BlobString Name;
-    
-    //public List<WaveData> _dataForWaves;
 
-    public BlobArray<WaveData>[] WaveDataArray;
-    public struct WaveData
+    public struct ClusterDataPool
     {
-        public bool IsCluster;
+        public BlobArray<Clusters> ClusterPool;
+    }
+
+    public struct WaveDataPool
+    {
+        public BlobArray<Waves> WavePool;
+    }
+    
+    public struct Enemies
+    {
+        //public BlobString enemyName;
         public int ID;
-        public float SpawnTime;
-        public int PopulationDensity;
-    }
+        public float Health;
+        public float Speed;
+        public float Damage;
+    };
 
-};
+    public struct Clusters
+    {
+        public int ID;
+        //public BlobString clusterName;
+
+        public BlobArray<ClusterData> CDataArray;
+
+        public struct ClusterData
+        {
+            public int Type;
+            public int AmountToSpawn;
+        }
+    };
+
+    public struct Waves
+    {
+        public int ID;
+        //public BlobString Name;
+
+        //public List<WaveData> _dataForWaves;
+
+        public BlobArray<WaveData> WDataArray;
+
+        public struct WaveData
+        {
+            public bool IsCluster;
+            public int ID;
+            public float SpawnTime;
+            public int PopulationDensity;
+        }
+
+    };
+    public struct ManagerEnemyPool : IComponentData
+    {
+        public BlobAssetReference<EnemyDataPool> EnemyPool;
+    }
+    public struct ManagerClusterPool : IComponentData
+    {
+        public BlobAssetReference<ClusterDataPool> ClusterPool;
+    }
+    public struct ManagerWavePool : IComponentData
+    {
+        public BlobAssetReference<WaveDataPool> WavePool;
+    }
+}
 

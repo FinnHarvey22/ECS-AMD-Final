@@ -5,22 +5,22 @@ using UnityEngine;
 public class Holder : ScriptableObject
 {
     [SerializeField]
-    public ScriptableObject[] Types;
+    public Enemy[] Types;
     [SerializeField]
-    public ScriptableObject[] Clusters;
+    public Cluster[] Clusters;
     [SerializeField]
-    public ScriptableObject[] Waves;
+    public Wave[] Waves;
 
 
-    public void AddTypes(List<ScriptableObject> TypesSO)
+    public void AddTypes(List<Enemy> TypesSO)
     {
         Types = TypesSO.ToArray();
     }
-    public void AddCluster(List<ScriptableObject> ClusterSO)
+    public void AddCluster(List<Cluster> ClusterSO)
     {
         Clusters = ClusterSO.ToArray();
     }
-    public void AddWaves(List<ScriptableObject> WavesSO)
+    public void AddWaves(List<Wave> WavesSO)
     {
         Waves = WavesSO.ToArray();
     }

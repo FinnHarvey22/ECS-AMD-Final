@@ -10,4 +10,5 @@ public struct EnemySpawnerComponent : IComponentData
 	public float SpawnDelay;
 
 	public float3 SpawnPosition;
+	
 }

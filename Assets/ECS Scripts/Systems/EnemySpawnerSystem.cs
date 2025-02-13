@@ -18,7 +18,7 @@ public partial struct EnemySpawnerSystem : ISystem
 		{
 			spawner.ValueRW.Timer += SystemAPI.Time.DeltaTime;
 			
-			if(spawner.ValueRO.Timer < spawner.ValueRO.SpawnDelay)
+			if(spawner.ValueRO.Timer < spawner.ValueRO.SpawnDelay )
 			{
 				continue;
 			}

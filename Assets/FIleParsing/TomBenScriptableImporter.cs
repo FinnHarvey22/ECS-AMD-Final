@@ -29,9 +29,9 @@ public class TomBenScriptableImporter : ScriptedImporter
     private Dictionary<int, Clusters> _clustersDictionary = new Dictionary<int, Clusters>();
 
 
-    private List<ScriptableObject> _typesSo;
-    private List<ScriptableObject> _clusterSo;
-    private List<ScriptableObject> _wavesSo;
+    private List<Enemy> _typesSo;
+    private List<Cluster> _clusterSo;
+    private List<Wave> _wavesSo;
 
 
     private Holder _scriptableHolder;
@@ -115,9 +115,9 @@ public class TomBenScriptableImporter : ScriptedImporter
         ChangeState(ParserState.Outside);
         
         _types = new List<ParsedBlock>();
-        _typesSo = new List<ScriptableObject>();
-        _clusterSo = new List<ScriptableObject>();
-        _wavesSo = new List<ScriptableObject>();
+        _typesSo = new List<Enemy>();
+        _clusterSo = new List<Cluster>();
+        _wavesSo = new List<Wave>();
 
         _clustersList = new List<Clusters>();
         _wavesList = new List<Waves>();
