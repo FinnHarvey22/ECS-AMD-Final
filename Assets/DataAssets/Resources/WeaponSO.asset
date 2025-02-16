@@ -14,4 +14,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Damage: 100
   AttackDelay: 0.01
-  AttackRange: 5
+  AttackRange: 2

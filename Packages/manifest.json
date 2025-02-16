@@ -1,7 +1,10 @@
 {
   "dependencies": {
+    "com.unity.2d.sprite": "1.0.0",
+    "com.unity.2d.tilemap": "1.0.0",
     "com.unity.collab-proxy": "2.6.0",
     "com.unity.entities.graphics": "1.2.4",
+    "com.unity.feature.2d": "2.0.1",
     "com.unity.feature.development": "1.0.2",
     "com.unity.inputsystem": "1.10.0",
     "com.unity.physics": "1.2.4",

@@ -59,6 +59,7 @@ public class PlayerAuthoring : MonoBehaviour
 			AddBuffer<DamageBuffer>(e);
 			AddComponent<PendingKillComponent>(e);
 			SetComponentEnabled<PendingKillComponent>(e, false);
+			AddComponent(e, new CameraFollowComp());
 		}
 	}
 }
@@ -70,6 +71,8 @@ public struct InputMove : IComponentData, IEnableableComponent
 	public float3 RequestedMove;
 	public float MoveSpeed;
 }
+
+
 
 public struct InputAttack : IComponentData, IEnableableComponent { }
 
@@ -91,4 +94,8 @@ public struct WeaponData
 	public float Damage;
 	public float AttackDelay;
 	public float AttackRange;
+}
+public struct CameraFollowComp : IComponentData
+{
+	
 }
